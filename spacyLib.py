@@ -100,6 +100,16 @@ sentences = ["Surely if you wanna make lots of $ then you should learn COBOL",
              'C# but that is my fanboy/addict self talking',
              'I think you should start with python to learn how programs work, then maybe move to C/C++',
              'C# will make you love programming compared to others suggested here',
+             'Python is such a versatile and easy-to-learn language. I love how it simplifies complex tasks.',
+             "Java has been my go-to programming language for years. It's reliable and performs well for large projects.",
+             "I find JavaScript to be a bit challenging at first, but once you get the hang of it, it's powerful for web development.",
+             "C++ gives me great control over memory and performance, but it can be tricky to manage pointers.",
+             "Ruby is a pleasure to work with. Its clean syntax makes coding fun and productive.",
+             "I'm not a big fan of PHP. It feels outdated, and there are better alternatives for web development.",
+             "Go is lightning-fast and perfect for building scalable systems. I'm impressed with its performance.",
+             "Swift has been a game-changer for iOS development. It's modern and makes coding enjoyable.",
+             "I had a bad experience with Perl. Its syntax is confusing, and debugging can be a nightmare.",
+             "Rust has become my new favorite language. Its safety features and performance are top-notch."
              ]
 
 # data
@@ -109,7 +119,7 @@ for sentence in sentences:
     words = word_tokenize(sentence)
     for word in words:
         if word in languages:
-            doc = nlp(sentence)
+            doc = nlp(sentence.lower())
             # Get the predicted sentiment label
             predicted_sentiment = get_sentiment_label(doc.cats)
             row = [sentence, word, predicted_sentiment]
