@@ -1,9 +1,9 @@
-import nltk
+import matplotlib.pyplot as plt
+import numpy as np
 from textblob import TextBlob
 from nltk import word_tokenize
 from tabulate import tabulate
 
-# nltk.download('vader_lexicon')
 # languages
 languages = ["A# .NET", "A# (Axiom)", "A-0 System", "A+", "A++", "ABAP", "ABC", "ABC ALGOL", "ABLE", "ABSET", "ABSYS",
              "ACC", "Accent", "Ace DASL", "ACL2", "ACT-III", "Action!", "ActionScript", "Ada", "Adenine", "Agda",
@@ -108,6 +108,10 @@ sentences = ["Surely if you wanna make lots of $ then you should learn COBOL",
 # data
 data = [['SENTENCE', "LANGUAGE", "SENTIMENT"], ['________', "________", "_________"], ]
 
+# {language1:{positiveSentences:[obj, obj], negativeSentences:[obj, obj], neutralSentences:[obj, obj]}, language2:{}}
+# obj: {sentence: '', polarity: ''}
+allData = {}
+
 
 # analyzing the sentence if it is positive, negative or neutral
 def analyze_sentiment(sentence):
@@ -117,20 +121,76 @@ def analyze_sentiment(sentence):
     # Getting the polarity score, which ranges from -1 (negative) to 1 (positive)
     polarity = blob.sentiment.polarity
 
-    if polarity > 0:
-        return ("Positive")
-    elif polarity < 0:
-        return ("Negative")
-    else:
-        return ("Neutral")
+    return polarity
 
 
-for sentence in sentences:
-    words = word_tokenize(sentence)
-    for word in words:
-        if word in languages:
-            polarity = analyze_sentiment(sentence.lower())
-            row = [sentence, word, polarity]
-            data.append(row)
+def showGraph():
+    # x-coordinates of left sides of bars
+    left = np.arange(len(allData))
 
-print(tabulate(data))
+    # heights of bars
+    heightPositive = []
+    heightNegative = []
+
+    # labels for bars
+    tick_label = []
+
+    # widths of the bars
+    bar_width = 0.4
+
+    for data in allData:
+        heightPositive.append(len(allData[data]["positiveSentences"]))
+        heightNegative.append(len(allData[data]["negativeSentences"]))
+        tick_label.append(data)
+
+    # plotting the bars for positive and negative sentiments side by side
+    plt.bar(left, heightPositive, width=bar_width, label='Positive', color='green')
+    plt.bar(left + bar_width, heightNegative, width=bar_width, label='Negative', color='red')
+
+    # naming the x-axis
+    plt.xlabel('Languages')
+    # naming the y-axis
+    plt.ylabel('Number of Sentences')
+    # plot title
+    plt.title('Positive and Negative Sentiments for Each Language')
+
+    # setting the x-ticks to be at the middle of each group of bars
+    plt.xticks(left + bar_width / 2, tick_label)
+
+    # Rotate tick labels vertically
+    plt.xticks(rotation='vertical')
+
+    # displaying the legend
+    plt.legend()
+
+    # function to show the plot
+    plt.show()
+
+
+# make analysis
+def make_analysis():
+    for sentence in sentences:
+        words = word_tokenize(sentence)
+        for word in words:
+            if word in languages:
+                if word not in allData:
+                    allData[word] = {"positiveSentences": [], "negativeSentences": [], "neutralSentences": []}
+
+                polarity = analyze_sentiment(sentence.lower())
+                sentenceObj = {"sentence": sentence, "polarity": polarity}
+
+                if polarity > 0:
+                    allData[word]["positiveSentences"].append(sentenceObj)
+                elif polarity < 0:
+                    allData[word]["negativeSentences"].append(sentenceObj)
+                else:
+                    allData[word]["neutralSentences"].append(sentenceObj)
+
+                row = [sentence, word, polarity]
+                data.append(row)
+
+
+# print(allData)
+# print(tabulate(data))
+make_analysis()
+showGraph()
