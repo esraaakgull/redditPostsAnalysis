@@ -17,6 +17,6 @@
 ![spacy1](https://github.com/esraaakgull/redditPostsAnalysis/assets/94448231/d88a5367-78e7-4712-9f5b-f7c342373930)
 
 
-#nlpLib
+#nltkLib
 ![nlp1](https://github.com/esraaakgull/redditPostsAnalysis/assets/94448231/a415e698-ad72-420b-98c8-1324f14335d0)
 
