@@ -2,12 +2,14 @@ import torch
 from transformers import BertTokenizer, BertForSequenceClassification
 from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
+from transformers import get_linear_schedule_with_warmup
 
-# Step 1: Install required libraries
+
+# Step 1: Installing required libraries
 # pip install transformers
 # pip install torch
 
-# Step 2: Prepare your dataset (mock data)
+# Step 2: Preparing our dataset (mock data)
 train_text_list = [
     "I love this product!",
     "This movie is amazing.",
@@ -18,10 +20,13 @@ train_text_list = [
     "The customer support was terrible.",
     "I hate this place.",
     "The experience was awful.",
-    "This is the worst product ever."
+    "This is the worst product ever.",
+    "I hate you",
+    "I do not like you",
+    "It is disgusting",
 ]
 
-train_labels = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]  # 1 for positive, 0 for negative
+train_labels = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]  # 1 for positive, 0 for negative
 
 val_text_list = [
     "The hotel was nice.",
@@ -44,7 +49,7 @@ test_labels = [1, 1, 0, 0]
 
 num_classes = 2  # Number of sentiment classes (positive and negative)
 
-# Step 3: Load Pre-trained BERT Model
+# Step 3: Loading Pre-trained BERT Model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 # Step 4: Data Preprocessing
@@ -96,7 +101,7 @@ val_loader = DataLoader(val_dataset, batch_size=16)
 test_dataset = TensorDataset(input_ids_test, attention_masks_test, labels_test)
 test_loader = DataLoader(test_dataset, batch_size=16)
 
-# Step 6: Define Sentiment Analysis Model
+# Step 6: Defining Sentiment Analysis Model
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=num_classes)
 
 # Step 7: Training
@@ -106,7 +111,16 @@ model.to(device)
 optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
 num_epochs = 3
+
+# Enabling fine-tuning
 model.train()
+
+scheduler = get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=len(train_loader) // 10,
+    num_training_steps=len(train_loader) * num_epochs
+)
+
 for epoch in range(num_epochs):
     for batch in train_loader:
         optimizer.zero_grad()
@@ -117,6 +131,7 @@ for epoch in range(num_epochs):
         loss = outputs.loss
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
 # Step 8: Evaluation
 model.eval()
@@ -153,7 +168,7 @@ with torch.no_grad():
     print(f"Test Accuracy: {accuracy}")
 
 # Step 10: Inference
-text_to_classify = "I don't like you"
+text_to_classify = "I hate you"
 encoded_text = tokenizer.encode_plus(
     text_to_classify,
     add_special_tokens=True,
