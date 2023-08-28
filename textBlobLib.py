@@ -191,6 +191,6 @@ def make_analysis():
 
 
 # print(allData)
-# print(tabulate(data))
 make_analysis()
+print(tabulate(data))
 showGraph()
