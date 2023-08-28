@@ -29,6 +29,9 @@ for submission in subreddit.new(limit=10):
     titles.append(submission.title)
     scores.append(submission.score)  # upvotes
     text.append(submission.selftext)
+    # her postun yorumları
+   # for comment in submission.comments.list():
+        # print(comment.body)
 
 df['Title'] = titles
 df['Text'] = text
