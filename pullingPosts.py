@@ -25,7 +25,7 @@ scores = []
 text = []
 
 # looping over posts and scraping it
-for submission in subreddit.new(limit=10):
+for submission in subreddit.new(limit=20):
     titles.append(submission.title)
     scores.append(submission.score)  # upvotes
     text.append(submission.selftext)
@@ -38,4 +38,4 @@ df['Text'] = text
 # df['Upvotes'] = scores  # upvotes
 
 print(df.shape)
-print(df.head(10))
+print(df.head(20))
