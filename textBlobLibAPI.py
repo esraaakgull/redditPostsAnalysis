@@ -98,7 +98,7 @@ subreddit_name = "programmingLanguages"
 subreddit = reddit.subreddit(subreddit_name)
 
 # looping over posts and scraping it
-for post in subreddit.new(limit=None):
+for post in subreddit.new(limit=5):
     posts.append(post)
 
 
@@ -153,17 +153,22 @@ def make_analysis():
             for word in words:
                 if word in languages:
                     if word not in results:
-                        results[word] = {"positiveSentences": [], "negativeSentences": [], "neutralSentences": []}
+                        results[word] = {"positiveSentences": [], "weaklyPositiveSentences": [],
+                                         "negativeSentences": [], "weaklyNegativeSentences": [], "neutralSentences": []}
 
                     polarity = analyze_sentiment(comment.lower())
                     sentenceObj = {"sentence": comment, "polarity": polarity}
 
-                    if polarity > 0:
-                        results[word]["positiveSentences"].append(sentenceObj)
-                    elif polarity < 0:
+                    if -1 <= polarity <= -0.6:
                         results[word]["negativeSentences"].append(sentenceObj)
-                    else:
+                    elif -0.6 <= polarity <= -0.2:
+                        results[word]["weaklyNegativeSentences"].append(sentenceObj)
+                    elif -0.2 <= polarity <= 0.2:
                         results[word]["neutralSentences"].append(sentenceObj)
+                    elif 0.2 <= polarity <= 0.6:
+                        results[word]["weaklyPositiveSentences"].append(sentenceObj)
+                    else:
+                        results[word]["positiveSentences"].append(sentenceObj)
 
                     row = [comment, word, polarity]
                     data.append(row)
@@ -175,33 +180,39 @@ def showGraph():
 
     # heights of bars
     heightPositive = []
+    heightWeaklyPositive = []
     heightNegative = []
+    heightWeaklyNegative = []
     heightNeutral = []
-
 
     # labels for bars
     tick_label = []
 
     # widths of the bars
-    bar_width = 0.4
+    bar_width = 0.5
 
     for data in results:
-        heightPositive.append(len(results[data]["positiveSentences"]))
         heightNegative.append(len(results[data]["negativeSentences"]))
+        heightWeaklyNegative.append(len(results[data]["weaklyNegativeSentences"]))
         heightNeutral.append(len(results[data]["neutralSentences"]))
+        heightWeaklyPositive.append(len(results[data]["weaklyPositiveSentences"]))
+        heightPositive.append(len(results[data]["positiveSentences"]))
         tick_label.append(data)
 
-    # plotting the bars for positive and negative sentiments side by side
-    plt.bar(left, heightPositive, width=bar_width, label='Positive', color='green')
-    plt.bar(left + bar_width, heightNegative, width=bar_width, label='Negative', color='red')
-    plt.bar(left + 2 * bar_width, heightNeutral, width=bar_width, label='Neutral', color='gray')
+    total = heightNegative + heightWeaklyNegative + heightNeutral + heightWeaklyPositive + heightPositive
+    # Plotting the bars for positive and negative sentiments side by side
+    plt.bar(left - 2 * bar_width, heightNegative, width=bar_width, label='Negative', color='red')
+    plt.bar(left - bar_width, heightWeaklyNegative, width=bar_width, label='WeaklyNegative', color='orange')
+    plt.bar(left, heightNeutral, width=bar_width, label='Neutral', color='gray')
+    plt.bar(left + bar_width, heightWeaklyPositive, width=bar_width, label='WeaklyPositive', color='green')
+    plt.bar(left + 2 * bar_width, heightPositive, width=bar_width, label='Positive', color='blue')
 
     # naming the x-axis
     plt.xlabel('Languages')
     # naming the y-axis
     plt.ylabel('Number of Sentences')
     # plot title
-    plt.title('Positive and Negative Sentiments for Each Language')
+    plt.title('Sentiments for Each Language')
 
     # setting the x-ticks to be at the middle of each group of bars
     plt.xticks(left + bar_width, tick_label)

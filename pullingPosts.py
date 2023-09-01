@@ -24,18 +24,24 @@ titles = []
 scores = []
 text = []
 
+denemePosts = []
+
 # looping over posts and scraping it
 for submission in subreddit.new(limit=20):
+    denemePosts.append(submission)
     titles.append(submission.title)
     scores.append(submission.score)  # upvotes
     text.append(submission.selftext)
     # her postun yorumları
-   # for comment in submission.comments.list():
-        # print(comment.body)
+# for comment in submission.comments.list():
+# print(comment.body)
 
 df['Title'] = titles
 df['Text'] = text
 # df['Upvotes'] = scores  # upvotes
 
-print(df.shape)
-print(df.head(20))
+# print(df.shape)
+# print(df.head(20))
+
+commentler = denemePosts[1].comments.list()
+print(commentler[1].body)
