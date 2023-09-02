@@ -1,0 +1,20 @@
+167oefv	jyu88je	I think Forth.	0	Forth
+167oefv	jyu6zdj	"Lisp and various derivatives, definitely."	0	Lisp
+167oefv	jyu6zdj	"Perl, because running and doing flips with your eyes closed while juggling multiple pairs of scissors is fun for the whole family."	0.1	Perl
+167oefv	jyu6zdj	Ruby is another one to put on the list.	0	Ruby
+167oefv	jyu6zdj	A lot of Ruby libs (like Rails) are based on the concept.	0	Ruby
+167oefv	jyu6zdj	"Python, to some extent."	0	Python
+167zsiv		"def call_function(args:, globals:)       new_context = Dictionary.new(globals[:context].raw.dup)  where I used to do      def call_function(args:, globals:)       new_context = globals[:context].dup  And even before that I used to do      def call_function(args:, globals:)       new_context = globals[:context].deep_dup  My language is implemented in Ruby and the context is a Code::Object::Dictionary  Any help?"	0.5	Ruby
+167vd73		Does such tool exist for C?	0	C
+167vd73	jyszytw	"My favorite is [Lemon](https://compiler-dept.github.io/lemon/), which is very user friendly, generates good clean C code, and acknowledges modern concerns like threading (versus `yacc`)."	0.390277778	C
+166rij5	jynj02a	"I'm not trying to innovate with the language, I'm borrowing from Go, Rust, Kotlin, etc but trying to keep the language very minimal."	-0.13	Go
+166rij5	jynj02a	"I'm not trying to innovate with the language, I'm borrowing from Go, Rust, Kotlin, etc but trying to keep the language very minimal."	-0.13	Rust
+166rij5	jynj02a	"I'm not trying to innovate with the language, I'm borrowing from Go, Rust, Kotlin, etc but trying to keep the language very minimal."	-0.13	Kotlin
+166rij5	jynj02a	I'm implementing this in Rust.	0	Rust
+166rij5	jymmzcj	"My toy* language:  * compiles to C  * based off C with modern features and tooling  * methods, generics, algebraic types, first class functions,    iterators, traits, built in strings  * null safety and intuitive error handling based off rust (Option, Result, ?"	0.225	C
+166rij5	jymmzcj	"operator, etc)  * tunable GC system, might also implement smart pointers, raw pointers available  * cut out as much UB as possible  * easy c library imports and bindings  thats my main goal, I have other ideas I would like to implement like pattern matching, lambdas, and closures but I can do without plus the implementation to C might not be straight forward."	0.13231456	C
+166rij5	jymmzcj	"From my research, it seems C is a bad backend unless there is a very close relationship to C. Methods are fine, iterators I think I have figured out, generics would be the most difficult but doable."	-0.016666667	C
+166rij5	jymmzcj	If anyone has any experience with C as a backend or any input on some possible pitfalls Id really like to hear.	0.1	C
+166rij5	jymmzcj	One reason I want to compile to C is for easy bindings and to easily get the language from working to usable.	0.433333333	C
+166rij5	jyn42bu	"The C way is to just leave it to the user: a memory allocation IS a value in the form of a pointer, and you're responsible for fulfilling the promise of freeing it at some point."	0.2	C
+166rij5	jyn42bu	"Python has the ""with"" clause which is nice but doesn't allow for interleaving things (A was created before B but we'd like to free it first) or returning the resource from a function or something."	0.416666667	Python

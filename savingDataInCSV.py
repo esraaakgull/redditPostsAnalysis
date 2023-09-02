@@ -4,7 +4,6 @@ from nltk import word_tokenize
 from nltk.tokenize import sent_tokenize
 import csv
 import time
-import xlrd
 
 # languages
 languages = [
@@ -74,25 +73,35 @@ posts = []
 # {"C":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]}, "Python":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]},}
 result = {}
 
+def showGraph():
 
-# creating excel file
-# file = open('data2.xls', 'w', encoding='utf-8')
-# file = csv.writer(file)
 
 def read_file_and_show_result():
-    # Specify the path to your Excel (.xls) file
-    excel_file_path = 'data2.xls'
+    # Open the CSV file for reading
+    with open(filename, mode='r', encoding='utf-8') as csvfile:
+        # Create a CSV reader object
+        reader = csv.reader(csvfile)
 
-    # Open the Excel file
-    workbook = xlrd.open_workbook(excel_file_path)
+        # Loop through each row in the CSV file
+        for row in reader:
+            language = row[-1]
+            polarity = float(row[-2])
+            if language not in result:
+                result[language] = {"negative": [], "weaklyNegative": [], "neutral": [], "weaklyPositive": [],
+                                    "positive": []}
 
-    # Specify the sheet you want to work with (by index or name)
-    sheet = workbook.sheet_by_index(0)  # Replace 0 with the index of the sheet you want
+            if -1 <= polarity <= -0.6:
+                result[language]["negative"].append(row)
+            elif -0.6 <= polarity <= -0.2:
+                result[language]["weaklyNegative"].append(row)
+            elif -0.2 <= polarity <= 0.2:
+                result[language]["neutral"].append(row)
+            elif 0.2 <= polarity <= 0.6:
+                result[language]["weaklyPositive"].append(row)
+            else:
+                result[language]["positive"].append(row)
 
-    # Loop through each row in the sheet and read it line by line
-    for row_index in range(sheet.nrows):
-        row = sheet.row_values(row_index)
-        print(row)
+    showGraph()
 
 
 def detect_language(sentence):
@@ -115,23 +124,31 @@ def analyze_sentiment(sentence):
     return polarity
 
 
+filename = "csvData.csv"
+
+
 def split_and_save(data):
-    sentences = sent_tokenize(data['text'])
-    for sentence in sentences:
-        sentiment = analyze_sentiment(sentence)
-        languages = detect_language(sentence)
-        if len(languages) > 0:
-            if len(languages) > 1:
-                for language in languages:
-                    if "comment" in data:
-                        file.writerow([data['post'], data['comment'], sentence, sentiment, language])
-                    else:
-                        file.writerow([data['post'], "", sentence, sentiment, language])
-            else:
-                if "comment" in data:
-                    file.writerow([data['post'], data['comment'], sentence, sentiment, languages[0]])
+    # writing to csv file
+    with open(filename, 'a', encoding='utf-8', newline='') as csvfile:
+        # creating a csv writer object
+        file = csv.writer(csvfile)
+
+        sentences = sent_tokenize(data['text'])
+        for sentence in sentences:
+            sentiment = analyze_sentiment(sentence)
+            languages = detect_language(sentence)
+            if len(languages) > 0:
+                if len(languages) > 1:
+                    for language in languages:
+                        if "comment" in data:
+                            file.writerow([data['post'], data['comment'], sentence, sentiment, language])
+                        else:
+                            file.writerow([data['post'], "", sentence, sentiment, language])
                 else:
-                    file.writerow([data['post'], "", sentence, sentiment, languages[0]])
+                    if "comment" in data:
+                        file.writerow([data['post'], data['comment'], sentence, sentiment, languages[0]])
+                    else:
+                        file.writerow([data['post'], "", sentence, sentiment, languages[0]])
 
 
 def process_data():
@@ -161,7 +178,7 @@ def pull_data_from_api():
     subreddit = reddit.subreddit(subreddit_name)
 
     # looping over posts and scraping it
-    for post in subreddit.new(limit=5):
+    for post in subreddit.new(limit=10):
         posts.append(post)
         # Introduce a delay between requests (e.g., 5 seconds)
         time.sleep(5)
@@ -170,3 +187,4 @@ def pull_data_from_api():
 # pull_data_from_api()
 # process_data()
 read_file_and_show_result()
+print(result)
