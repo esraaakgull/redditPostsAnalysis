@@ -4,6 +4,8 @@ from nltk import word_tokenize
 from nltk.tokenize import sent_tokenize
 import csv
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 # languages
 languages = [
@@ -73,7 +75,112 @@ posts = []
 # {"C":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]}, "Python":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]},}
 result = {}
 
-def showGraph():
+
+def show_graph_without_dividing():
+    # set width of bar
+    barWidth = 0.15
+    fig = plt.subplots(figsize=(12, 8))
+    # set height of bar
+    negative = []
+    weaklyNegative = []
+    neutral = []
+    weaklyPositive = []
+    positive = []
+    languageTitles = []
+
+    for language in result:
+        languageTitles.append(language)
+        totalNegative = len(result[language]["negative"])
+        totalWeaklyNegative = len(result[language]["weaklyNegative"])
+        totalNeutral = len(result[language]["neutral"])
+        totalWeaklyPositive = len(result[language]["weaklyPositive"])
+        totalPositive = len(result[language]["positive"])
+        negative.append(totalNegative)
+        weaklyNegative.append(totalWeaklyNegative)
+        neutral.append(totalNeutral)
+        weaklyPositive.append(totalWeaklyPositive)
+        positive.append(totalPositive)
+
+    # Set position of bar on X axis
+    br1 = np.arange(len(negative))
+    br2 = [x + barWidth for x in br1]
+    br3 = [x + barWidth for x in br2]
+    br4 = [x + barWidth for x in br3]
+    br5 = [x + barWidth for x in br4]
+
+    # Make the plot
+    plt.bar(br1, negative, color='red', width=barWidth,
+            edgecolor='red', label='Negative')
+    plt.bar(br2, weaklyNegative, color='orange', width=barWidth,
+            edgecolor='orange', label='WeaklyNegative')
+    plt.bar(br3, neutral, color='grey', width=barWidth,
+            edgecolor='grey', label='Neutral')
+    plt.bar(br4, weaklyPositive, color='blue', width=barWidth,
+            edgecolor='blue', label='WeaklyPositive')
+    plt.bar(br5, positive, color='green', width=barWidth,
+            edgecolor='green', label='Positive')
+
+    # Adding Xticks
+    plt.xlabel('Languages', fontweight='bold', fontsize=15)
+    plt.ylabel('Popularity', fontweight='bold', fontsize=15)
+    plt.xticks([r + barWidth for r in range(len(negative))], languageTitles)
+
+    plt.legend()
+    plt.show()
+
+
+def show_graph():
+    # set width of bar
+    barWidth = 0.15
+    fig = plt.subplots(figsize=(12, 8))
+    # set height of bar
+    negative = []
+    weaklyNegative = []
+    neutral = []
+    weaklyPositive = []
+    positive = []
+    languageTitles = []
+
+    for language in result:
+        languageTitles.append(language)
+        totalNegative = len(result[language]["negative"])
+        totalWeaklyNegative = len(result[language]["weaklyNegative"])
+        totalNeutral = len(result[language]["neutral"])
+        totalWeaklyPositive = len(result[language]["weaklyPositive"])
+        totalPositive = len(result[language]["positive"])
+        total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
+        negative.append(int(totalNegative / total))
+        weaklyNegative.append(int(totalWeaklyNegative / total))
+        neutral.append(int(totalNeutral / total))
+        weaklyPositive.append(int(totalWeaklyPositive / total))
+        positive.append(int(totalPositive / total))
+
+    # Set position of bar on X axis
+    br1 = np.arange(len(negative))
+    br2 = [x + barWidth for x in br1]
+    br3 = [x + barWidth for x in br2]
+    br4 = [x + barWidth for x in br3]
+    br5 = [x + barWidth for x in br4]
+
+    # Make the plot
+    plt.bar(br1, negative, color='red', width=barWidth,
+            edgecolor='red', label='Negative')
+    plt.bar(br2, weaklyNegative, color='orange', width=barWidth,
+            edgecolor='orange', label='WeaklyNegative')
+    plt.bar(br3, neutral, color='grey', width=barWidth,
+            edgecolor='grey', label='Neutral')
+    plt.bar(br4, weaklyPositive, color='blue', width=barWidth,
+            edgecolor='blue', label='WeaklyPositive')
+    plt.bar(br5, positive, color='green', width=barWidth,
+            edgecolor='green', label='Positive')
+
+    # Adding Xticks
+    plt.xlabel('Languages', fontweight='bold', fontsize=15)
+    plt.ylabel('Popularity', fontweight='bold', fontsize=15)
+    plt.xticks([r + barWidth for r in range(len(negative))], languageTitles)
+
+    plt.legend()
+    plt.show()
 
 
 def read_file_and_show_result():
@@ -101,7 +208,8 @@ def read_file_and_show_result():
             else:
                 result[language]["positive"].append(row)
 
-    showGraph()
+    # show_graph()
+    show_graph_without_dividing()
 
 
 def detect_language(sentence):
@@ -124,7 +232,7 @@ def analyze_sentiment(sentence):
     return polarity
 
 
-filename = "csvData.csv"
+filename = "allDataCsv.csv"
 
 
 def split_and_save(data):
@@ -178,13 +286,13 @@ def pull_data_from_api():
     subreddit = reddit.subreddit(subreddit_name)
 
     # looping over posts and scraping it
-    for post in subreddit.new(limit=10):
+    for post in subreddit.new(limit=None):
         posts.append(post)
         # Introduce a delay between requests (e.g., 5 seconds)
         time.sleep(5)
 
 
-# pull_data_from_api()
-# process_data()
-read_file_and_show_result()
-print(result)
+pull_data_from_api()
+process_data()
+#read_file_and_show_result()
+#print(result)
