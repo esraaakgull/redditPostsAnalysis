@@ -6,66 +6,68 @@ import csv
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
 # languages
 languages = [
-    "ABAP",
-    "ActionScript",
-    "Ada",
-    "ALGOL",
-    "Alice",
-    "APL",
-    "Assembly",
-    "AutoIt",
-    "AutoLISP",
-    "Bash",
-    "C",
-    "C#",
-    "C++",
-    "COBOL",
-    "Clojure",
-    "COOL",
-    "Crystal",
-    "D",
-    "Dart",
-    "Delphi",
-    "Eiffel",
-    "Elixir",
-    "Elm",
-    "Erlang",
-    "F#",
-    "Forth",
-    "Fortran",
-    "Go",
-    "Groovy",
-    "Haskell",
-    "HTML",
-    "Java",
-    "JavaScript",
-    "Julia",
-    "Kotlin",
-    "Lisp",
-    "Lua",
-    "MATLAB",
-    "Objective-C",
-    "Pascal",
-    "Perl",
-    "PHP",
-    "Prolog",
-    "Python",
-    "R",
-    "Ruby",
-    "Rust",
-    "Scala",
-    "Scheme",
-    "Shell",
-    "Swift",
-    "Tcl",
-    "TypeScript",
-    "VBScript",
-    "Verilog",
-    "VHDL",
-    "Visual Basic .NET"
+    "abap",
+    "actionscript",
+    "ada",
+    "algol",
+    "alice",
+    "apl",
+    "assembly",
+    "autoit",
+    "autolisp",
+    "bash",
+    "c",
+    "c#",
+    "c++",
+    "cobol",
+    "clojure",
+    "cool",
+    "crystal",
+    "d",
+    "dart",
+    "delphi",
+    "eiffel",
+    "elixir",
+    "elm",
+    "erlang",
+    "f#",
+    "forth",
+    "fortran",
+    "go",
+    "groovy",
+    "haskell",
+    "html",
+    "java",
+    "javascript",
+    "julia",
+    "kotlin",
+    "lisp",
+    "lua",
+    "matlab",
+    "objective-c",
+    "pascal",
+    "perl",
+    "php",
+    "prolog",
+    "python",
+    "r",
+    "ruby",
+    "rust",
+    "scala",
+    "scheme",
+    "shell",
+    "swift",
+    "tcl",
+    "typescript",
+    "vbscript",
+    "verilog",
+    "vhdl",
+    "visual basic"
+    ".net"
 ]
 
 # posts
@@ -74,6 +76,63 @@ posts = []
 # results
 # {"C":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]}, "Python":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]},}
 result = {}
+
+
+def make_histogram():
+    nums = []
+    for language in result:
+        for negative in result[language]["negative"]:
+            nums.append(float(negative[-2]))
+        for weaklyNeg in result[language]["weaklyNegative"]:
+            nums.append(float(weaklyNeg[-2]))
+        for neutral in result[language]["neutral"]:
+            nums.append(float(neutral[-2]))
+        for weaklyPos in result[language]["weaklyPositive"]:
+            nums.append(float(weaklyPos[-2]))
+        for positive in result[language]["positive"]:
+            nums.append(float(positive[-2]))
+
+        # Creating dataset
+        n_bins = 21
+
+        legend = ['distribution']
+
+        # Creating histogram
+        fig, axs = plt.subplots(1, 1,
+                                figsize=(10, 5),
+                                tight_layout=True)
+
+        # Remove axes splines
+        for s in ['top', 'bottom', 'left', 'right']:
+            axs.spines[s].set_visible(False)
+
+        # Remove x, y ticks
+        axs.xaxis.set_ticks_position('none')
+        axs.yaxis.set_ticks_position('none')
+
+        # Add padding between axes and labels
+        axs.xaxis.set_tick_params(pad=5)
+        axs.yaxis.set_tick_params(pad=10)
+
+        # Creating histogram
+        N, bins, patches = axs.hist(nums, bins=n_bins, range=(-1, 1))  # Set the range to -1 to 1
+
+        # Setting color
+        fracs = ((N ** (1 / 5)) / N.max())
+        norm = colors.Normalize(fracs.min(), fracs.max())
+
+        for thisfrac, thispatch in zip(fracs, patches):
+            color = plt.cm.viridis(norm(thisfrac))
+            thispatch.set_facecolor(color)
+
+        # Adding extra features
+        plt.xlabel("Polarities")
+        plt.ylabel("Number of sentences")
+        plt.legend(legend)
+        plt.title(language)
+
+        # Show plot
+        plt.show()
 
 
 def show_graph_without_dividing():
@@ -149,11 +208,11 @@ def show_graph():
         totalWeaklyPositive = len(result[language]["weaklyPositive"])
         totalPositive = len(result[language]["positive"])
         total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
-        negative.append(int(totalNegative / total))
-        weaklyNegative.append(int(totalWeaklyNegative / total))
-        neutral.append(int(totalNeutral / total))
-        weaklyPositive.append(int(totalWeaklyPositive / total))
-        positive.append(int(totalPositive / total))
+        negative.append(totalNegative / total)
+        weaklyNegative.append(totalWeaklyNegative / total)
+        neutral.append(totalNeutral / total)
+        weaklyPositive.append(totalWeaklyPositive / total)
+        positive.append(totalPositive / total)
 
     # Set position of bar on X axis
     br1 = np.arange(len(negative))
@@ -183,7 +242,7 @@ def show_graph():
     plt.show()
 
 
-def read_file_and_show_result():
+def read_file():
     # Open the CSV file for reading
     with open(filename, mode='r', encoding='utf-8') as csvfile:
         # Create a CSV reader object
@@ -208,14 +267,12 @@ def read_file_and_show_result():
             else:
                 result[language]["positive"].append(row)
 
-    # show_graph()
-    show_graph_without_dividing()
-
 
 def detect_language(sentence):
     langs = []
     words = word_tokenize(sentence)
     for word in words:
+        word = word.lower()
         if word in languages:
             if word not in langs:
                 langs.append(word)
@@ -289,10 +346,12 @@ def pull_data_from_api():
     for post in subreddit.new(limit=None):
         posts.append(post)
         # Introduce a delay between requests (e.g., 5 seconds)
-        time.sleep(5)
+        time.sleep(10)
 
 
 pull_data_from_api()
 process_data()
-#read_file_and_show_result()
-#print(result)
+read_file()
+# show_graph()
+# show_graph_without_dividing()
+# make_histogram()
