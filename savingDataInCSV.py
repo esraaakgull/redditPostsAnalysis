@@ -77,8 +77,86 @@ posts = []
 # {"C":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]}, "Python":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]},}
 result = {}
 
+colorsArray = [
+    "red",
+    "green",
+    "blue",
+    "yellow",
+    "orange",
+    "purple",
+    "pink",
+    "brown",
+    "gray",
+    "black",
+    "cyan",
+    "magenta",
+    "teal",
+    "lavender",
+    "lime",
+    "olive",
+    "maroon",
+    "navy",
+    "turquoise",
+    "indigo",
+    "violet",
+    "beige",
+    "coral",
+    "gold",
+    "silver",
+    "peru",
+    "orchid",
+    "plum",
+    "aqua",
+    "chartreuse",
+    "crimson",
+    "fuchsia",
+    "khaki",
+    "limegreen",
+    "navajowhite",
+    "orangered",
+    "royalblue",
+    "saddlebrown",
+    "salmon",
+    "seagreen",
+    "sienna",
+    "slateblue",
+    "springgreen",
+    "tan",
+    "thistle",
+    "tomato",
+    "wheat",
+    "yellowgreen",
+    "darkcyan",
+    "deepskyblue"
+];
 
-def make_histogram():
+
+def make_histogram_forAll():
+    for i, language in enumerate(result):
+        langData = []
+        for negative in result[language]["negative"]:
+            langData.append(float(negative[-2]))
+        for weaklyNeg in result[language]["weaklyNegative"]:
+            langData.append(float(weaklyNeg[-2]))
+        for neutral in result[language]["neutral"]:
+            langData.append(float(neutral[-2]))
+        for weaklyPos in result[language]["weaklyPositive"]:
+            langData.append(float(weaklyPos[-2]))
+        for positive in result[language]["positive"]:
+            langData.append(float(positive[-2]))
+
+        plt.hist(langData, bins=41, alpha=0.5, color=colorsArray[i], label=language)
+
+    # Add labels and legend
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+
+    # Display the plot
+    plt.show()
+
+
+def make_histogram_seperately():
     nums = []
     for language in result:
         for negative in result[language]["negative"]:
@@ -93,7 +171,7 @@ def make_histogram():
             nums.append(float(positive[-2]))
 
         # Creating dataset
-        n_bins = 21
+        n_bins = 41
 
         legend = ['distribution']
 
@@ -184,6 +262,9 @@ def show_graph_without_dividing():
     plt.ylabel('Popularity', fontweight='bold', fontsize=15)
     plt.xticks([r + barWidth for r in range(len(negative))], languageTitles)
 
+    # Rotate tick labels vertically
+    plt.xticks(rotation='vertical')
+
     plt.legend()
     plt.show()
 
@@ -208,6 +289,7 @@ def show_graph():
         totalWeaklyPositive = len(result[language]["weaklyPositive"])
         totalPositive = len(result[language]["positive"])
         total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
+        print(language, "  :  ", total)
         negative.append(totalNegative / total)
         weaklyNegative.append(totalWeaklyNegative / total)
         neutral.append(totalNeutral / total)
@@ -237,6 +319,8 @@ def show_graph():
     plt.xlabel('Languages', fontweight='bold', fontsize=15)
     plt.ylabel('Popularity', fontweight='bold', fontsize=15)
     plt.xticks([r + barWidth for r in range(len(negative))], languageTitles)
+    # Rotate tick labels vertically
+    plt.xticks(rotation='vertical')
 
     plt.legend()
     plt.show()
@@ -349,9 +433,10 @@ def pull_data_from_api():
         time.sleep(10)
 
 
-pull_data_from_api()
-process_data()
+# pull_data_from_api()
+# process_data()
 read_file()
 # show_graph()
 # show_graph_without_dividing()
-# make_histogram()
+# make_histogram_seperately()
+make_histogram_forAll()
