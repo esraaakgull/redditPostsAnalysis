@@ -7,6 +7,9 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 # languages
 languages = [
@@ -128,7 +131,55 @@ colorsArray = [
     "yellowgreen",
     "darkcyan",
     "deepskyblue"
-];
+]
+
+
+def pcl():
+    data = {"language": [], "negativeNum": [], "weaklyNegativeNum": [], "neutral": [], "weaklyPositive": [],
+            "positive": []}
+
+    for res in result:
+        lang = res
+        negNumber = len(result[res]["negative"])
+        weaklyNegNumber = len(result[res]["weaklyNegative"])
+        neutral = len(result[res]["neutral"])
+        weaklyPosNumber = len(result[res]["weaklyPositive"])
+        posNumber = len(result[res]["positive"])
+        data["language"].append(lang)
+        data["negativeNum"].append(negNumber)
+        data["weaklyNegativeNum"].append(weaklyNegNumber)
+        data["neutral"].append(neutral)
+        data["weaklyPositive"].append(weaklyPosNumber)
+        data["positive"].append(posNumber)
+
+    # print(lang, " ", negNumber, " ", weaklyNegNumber, " ", neutral, " ", weaklyPosNumber, " ", posNumber)
+
+    df = pd.DataFrame(data)
+
+    # Dil sütununu indeks olarak ayarla
+    df.set_index('language', inplace=True)
+
+    # Verileri standartlaştır
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df)
+
+    # PCA uygula
+    pca = PCA(n_components=2)
+    reduced_data = pca.fit_transform(scaled_data)
+
+    # İki bileşeni görselleştir
+    plt.figure(figsize=(8, 6))
+    plt.scatter(reduced_data[:, 0], reduced_data[:, 1])
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+
+    # Dil etiketlerini ekle
+    for i, lang in enumerate(df.index):
+        plt.annotate(lang, (reduced_data[i, 0], reduced_data[i, 1]))
+
+    plt.title('PCA Analysis Result')
+    plt.grid()
+    plt.show()
 
 
 def make_histogram_forAll():
@@ -145,7 +196,7 @@ def make_histogram_forAll():
         for positive in result[language]["positive"]:
             langData.append(float(positive[-2]))
 
-        plt.hist(langData, bins=41, alpha=0.5, color=colorsArray[i], label=language)
+        plt.hist(langData, bins=5, alpha=0.5, color=colorsArray[i], label=language)
 
     # Add labels and legend
     plt.xlabel('Value')
@@ -171,7 +222,7 @@ def make_histogram_seperately():
             nums.append(float(positive[-2]))
 
         # Creating dataset
-        n_bins = 41
+        n_bins = 5
 
         legend = ['distribution']
 
@@ -439,4 +490,5 @@ read_file()
 # show_graph()
 # show_graph_without_dividing()
 # make_histogram_seperately()
-make_histogram_forAll()
+# make_histogram_forAll()
+pcl()
