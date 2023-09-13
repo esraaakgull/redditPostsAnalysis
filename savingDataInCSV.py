@@ -134,7 +134,48 @@ colorsArray = [
 ]
 
 
-def pcl():
+def pca2():
+    # Initialize empty lists or arrays for each category and language
+    categories = ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]
+    languages = list(result.keys())
+    polarity_data = {category: {language: [] for language in languages} for category in categories}
+
+    # Extract polarities for each sentence and categorize by language and category
+    for language, categories_data in result.items():
+        for category, sentences in categories_data.items():
+            for sentence_obj in sentences:
+                polarity_data[category][language].append(sentence_obj[3])  # Assuming polarity is at index 3
+
+    # Standardize data
+    standardized_data = {}
+    for category, language_polarities in polarity_data.items():
+        for language, polarities in language_polarities.items():
+            standardized_data[f"{language}_{category}"] = StandardScaler().fit_transform(
+                np.array(polarities).reshape(-1, 1)
+            )
+
+    # Perform PCA analysis
+    pca_results = {}
+    for category_language, data_array in standardized_data.items():
+        pca = PCA(n_components=2)
+        reduced_data = pca.fit_transform(data_array)
+        pca_results[category_language] = reduced_data
+
+    # Visualize the PCA results
+    for category_language, reduced_data in pca_results.items():
+        category, language = category_language.split("_")
+        plt.scatter(reduced_data[:, 0], reduced_data[:, 1], label=f"{language} - {category}")
+
+    plt.xlabel("Principal Component 1")
+    plt.ylabel("Principal Component 2")
+    plt.legend()
+    plt.title("PCA Analysis of Polarities")
+    plt.grid()
+    plt.show()
+
+
+# pca with total number of negative, weaklyNegative, neutral, weaklyPositive, positive
+def pca():
     data = {"language": [], "negativeNum": [], "weaklyNegativeNum": [], "neutral": [], "weaklyPositive": [],
             "positive": []}
 
@@ -491,4 +532,5 @@ read_file()
 # show_graph_without_dividing()
 # make_histogram_seperately()
 # make_histogram_forAll()
-pcl()
+# pca()
+pca2()
