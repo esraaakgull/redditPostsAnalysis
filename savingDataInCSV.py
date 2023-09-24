@@ -143,8 +143,11 @@ def pca2():
     # Extract polarities for each sentence and categorize by language and category
     for language, categories_data in result.items():
         for category, sentences in categories_data.items():
-            for sentence_obj in sentences:
-                polarity_data[category][language].append(sentence_obj[3])  # Assuming polarity is at index 3
+            if not sentences:
+                polarity_data[category][language].append(0.0)
+            else:
+                for sentence_obj in sentences:
+                    polarity_data[category][language].append(sentence_obj[3])  # Assuming polarity is at index 3
 
     # Standardize data
     standardized_data = {}
@@ -157,7 +160,7 @@ def pca2():
     # Perform PCA analysis
     pca_results = {}
     for category_language, data_array in standardized_data.items():
-        pca = PCA(n_components=2)
+        pca = PCA(n_components=1)
         reduced_data = pca.fit_transform(data_array)
         pca_results[category_language] = reduced_data
 
@@ -224,20 +227,15 @@ def pca():
 
 
 def make_histogram_forAll():
+    langData = []  # for polarity values for each language
     for i, language in enumerate(result):
-        langData = []
-        for negative in result[language]["negative"]:
-            langData.append(float(negative[-2]))
-        for weaklyNeg in result[language]["weaklyNegative"]:
-            langData.append(float(weaklyNeg[-2]))
-        for neutral in result[language]["neutral"]:
-            langData.append(float(neutral[-2]))
-        for weaklyPos in result[language]["weaklyPositive"]:
-            langData.append(float(weaklyPos[-2]))
-        for positive in result[language]["positive"]:
-            langData.append(float(positive[-2]))
+        # Looping through different polarities and append values to langData
+        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
+            for polarity_data in result[language][polarity_type]:
+                langData.append(float(polarity_data[-2]))
 
-        plt.hist(langData, bins=5, alpha=0.5, color=colorsArray[i], label=language)
+    plt.hist(langData, bins=9, alpha=0.5, color=colorsArray[-1])
+    print(langData)
 
     # Add labels and legend
     plt.xlabel('Value')
@@ -248,29 +246,36 @@ def make_histogram_forAll():
     plt.show()
 
 
-def make_histogram_seperately():
-    nums = []
+def histogram_seperately():
+    # to store histograms for each language
+    all_histograms = []
+
     for language in result:
-        for negative in result[language]["negative"]:
-            nums.append(float(negative[-2]))
-        for weaklyNeg in result[language]["weaklyNegative"]:
-            nums.append(float(weaklyNeg[-2]))
-        for neutral in result[language]["neutral"]:
-            nums.append(float(neutral[-2]))
-        for weaklyPos in result[language]["weaklyPositive"]:
-            nums.append(float(weaklyPos[-2]))
-        for positive in result[language]["positive"]:
-            nums.append(float(positive[-2]))
+        nums = []  # for polarity values for each language
 
+        # Looping through different polarities and append values to nums
+        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
+            for polarity_data in result[language][polarity_type]:
+                nums.append(float(polarity_data[-2]))
+
+        ################ TO SEE THE NUMBER OF TOTALS
+        negNumber = len(result[language]["negative"])
+        weaklyNegNumber = len(result[language]["weaklyNegative"])
+        neutral = len(result[language]["neutral"])
+        weaklyPosNumber = len(result[language]["weaklyPositive"])
+        posNumber = len(result[language]["positive"])
+
+        total = negNumber + weaklyNegNumber + neutral + weaklyPosNumber + posNumber
+
+        print(
+            f"{language}: Negative: {negNumber}, Weakly Negative: {weaklyNegNumber}, Neutral: {neutral}, Weakly Positive: {weaklyPosNumber}, Positive: {posNumber}, Total: {total}")
+        ############################################
         # Creating dataset
-        n_bins = 5
-
+        n_bins = 21
         legend = ['distribution']
 
         # Creating histogram
-        fig, axs = plt.subplots(1, 1,
-                                figsize=(10, 5),
-                                tight_layout=True)
+        fig, axs = plt.subplots(1, 1, figsize=(10, 5), tight_layout=True)
 
         # Remove axes splines
         for s in ['top', 'bottom', 'left', 'right']:
@@ -301,7 +306,10 @@ def make_histogram_seperately():
         plt.legend(legend)
         plt.title(language)
 
-        # Show plot
+        all_histograms.append(fig)  # Store the histogram for this language
+
+    # Show all the plots
+    for fig in all_histograms:
         plt.show()
 
 
@@ -381,7 +389,6 @@ def show_graph():
         totalWeaklyPositive = len(result[language]["weaklyPositive"])
         totalPositive = len(result[language]["positive"])
         total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
-        print(language, "  :  ", total)
         negative.append(totalNegative / total)
         weaklyNegative.append(totalWeaklyNegative / total)
         neutral.append(totalNeutral / total)
@@ -432,13 +439,13 @@ def read_file():
                 result[language] = {"negative": [], "weaklyNegative": [], "neutral": [], "weaklyPositive": [],
                                     "positive": []}
 
-            if -1 <= polarity <= -0.6:
+            if -1 <= polarity < -0.6:
                 result[language]["negative"].append(row)
-            elif -0.6 <= polarity <= -0.2:
+            elif -0.6 <= polarity < -0.2:
                 result[language]["weaklyNegative"].append(row)
-            elif -0.2 <= polarity <= 0.2:
+            elif -0.2 <= polarity < 0.2:
                 result[language]["neutral"].append(row)
-            elif 0.2 <= polarity <= 0.6:
+            elif 0.2 <= polarity < 0.6:
                 result[language]["weaklyPositive"].append(row)
             else:
                 result[language]["positive"].append(row)
@@ -473,7 +480,6 @@ def split_and_save(data):
     with open(filename, 'a', encoding='utf-8', newline='') as csvfile:
         # creating a csv writer object
         file = csv.writer(csvfile)
-
         sentences = sent_tokenize(data['text'])
         for sentence in sentences:
             sentiment = analyze_sentiment(sentence)
@@ -530,7 +536,7 @@ def pull_data_from_api():
 read_file()
 # show_graph()
 # show_graph_without_dividing()
-# make_histogram_seperately()
+histogram_seperately()
 # make_histogram_forAll()
-# pca()
-pca2()
+pca()
+# pca2()
