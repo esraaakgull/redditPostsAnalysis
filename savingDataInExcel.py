@@ -9,10 +9,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from transformers import pipeline
 import umap
-
-# There are 2 different result arrays
-# result_textblob array for textBlob
-# result_bert array for BERT
+import seaborn as sns
 
 # languages
 languages = [
@@ -76,122 +73,298 @@ languages = [
     ".net"
 ]
 
+pulled_data_file = "pulledData.xlsx"
+processed_data_file = "processedData.xlsx"
+textblob_languages_file = "textblobLanguages.xlsx"
+bert_languages_file = "bertLanguages.xlsx"
+textblob_sentiments_for_each_lang_file = "textblobSentimentsForEachLang.xlsx"
+bert_sentiments_for_each_lang_file = "bertSentimentsForEachLang.xlsx"
+
 # posts
 posts = []
+pulled_data = []
+processed_data = []
 
-# {"C":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]}, "Python":{negative:[], weaklyNegative:[], neutral:[], weaklyPositive:[], positive:[]},}
-result_textblob = {}
-result_bert = {}
-
-filename = "newAllData.xlsx"
-
-excel_data = []
-
-histogram_textblob = []  # for polarity values for each language
-histogram_bert = []  # for polarity values for each language
-
-online_sentiment_analyze = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
+bert_analysis = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 
 
-# pca with total number of negative, weaklyNegative, neutral, weaklyPositive, positive
+def show_umap():
+    textblob_data = store_each_lang_sentiments()["textblob"]
+    bert_data = store_each_lang_sentiments()["bert"]
+
+    # Find the maximum length of arrays
+    max_length = max(max(len(arr) for arr in textblob_data.values()),
+                     max(len(arr) for arr in bert_data.values()))
+
+    # Pad arrays to the maximum length with zeros
+    for lang in textblob_data:
+        textblob_data[lang] += [0.0] * (max_length - len(textblob_data[lang]))
+
+    for cluster in bert_data:
+        bert_data[cluster] += [0.0] * (max_length - len(bert_data[cluster]))
+
+    # Convert the dictionary values to a list of arrays
+    textblob_arrays = np.array([textblob_data[lang] for lang in textblob_data])
+    bert_arrays = np.array([bert_data[cluster] for cluster in bert_data])
+
+    # Apply UMAP for both textblob and BERT data with a fixed random_state
+    umap_textblob = umap.UMAP(n_components=2, random_state=42)
+    umap_result_textblob = umap_textblob.fit_transform(textblob_arrays)
+
+    umap_bert = umap.UMAP(n_components=2, random_state=42)
+    umap_result_bert = umap_bert.fit_transform(bert_arrays)
+
+    # Get the UMAP components for both textblob and BERT data
+    umap1_textblob = umap_result_textblob[:, 0]
+    umap2_textblob = umap_result_textblob[:, 1]
+
+    umap1_bert = umap_result_bert[:, 0]
+    umap2_bert = umap_result_bert[:, 1]
+
+    # Get the language and cluster names
+    languages = list(textblob_data.keys())
+    clusters = list(bert_data.keys())
+
+    # Plot the UMAP embeddings for textblob data
+    plt.figure(figsize=(10, 8))
+    plt.scatter(umap1_textblob, umap2_textblob, label='TextBlob Data')
+
+    # Annotate each point with the language name
+    for i, lang in enumerate(languages):
+        plt.annotate(lang, (umap1_textblob[i], umap2_textblob[i]))
+
+    # Plot the UMAP embeddings for BERT data
+    plt.scatter(umap1_bert, umap2_bert, label='BERT Data')
+
+    # Annotate each point with the cluster name
+    for i, cluster in enumerate(clusters):
+        plt.annotate(cluster, (umap1_bert[i], umap2_bert[i]))
+
+    plt.xlabel('UMAP Component 1')
+    plt.ylabel('UMAP Component 2')
+    plt.title('UMAP Visualization of TextBlob and BERT Data')
+    plt.legend()
+    plt.show()
+
+
+def color_palet():
+    textblob_data = store_each_lang_sentiments()["textblob"]
+    bert_data = store_each_lang_sentiments()["bert"]
+
+    # Find the maximum length of arrays
+    max_length = max(max(len(arr) for arr in textblob_data.values()),
+                     max(len(arr) for arr in bert_data.values()))
+
+    # Pad arrays to the maximum length with zeros
+    for lang in textblob_data:
+        textblob_data[lang] += [0.0] * (max_length - len(textblob_data[lang]))
+
+    for cluster in bert_data:
+        bert_data[cluster] += [0.0] * (max_length - len(bert_data[cluster]))
+
+    # Convert the dictionary values to a list of arrays
+    textblob_arrays = np.array([textblob_data[lang] for lang in textblob_data])
+    bert_arrays = np.array([bert_data[cluster] for cluster in bert_data])
+
+    # Apply UMAP for both textblob and BERT data with a fixed random_state
+    umap_textblob = umap.UMAP(n_components=2, random_state=42)
+    umap_result_textblob = umap_textblob.fit_transform(textblob_arrays)
+
+    umap_bert = umap.UMAP(n_components=2, random_state=42)
+    umap_result_bert = umap_bert.fit_transform(bert_arrays)
+
+    # Get the language and cluster names
+    languages = list(textblob_data.keys())
+    clusters = list(bert_data.keys())
+
+    # Define a color palette for clusters
+    cluster_palette = sns.color_palette("husl", len(clusters))
+
+    # Plot the UMAP embeddings for textblob data
+    plt.figure(figsize=(10, 8))
+
+    for i, cluster in enumerate(clusters):
+        cluster_points_bert = bert_data[cluster]
+        num_points = len(cluster_points_bert)
+        brightness = np.linspace(0.2, 1, num_points)
+
+        # Assign a color to each point within the cluster
+        cluster_colors = [sns.set_hls_values(cluster_palette[i], l=b) for b in brightness]
+
+        # Plot the points for each cluster with varying brightness
+        plt.scatter(umap_result_bert[:num_points, 0], umap_result_bert[:num_points, 1],
+                    color=cluster_colors,
+                    label=f'Cluster {cluster}')
+
+    # Annotate each point with the language name
+    for i, lang in enumerate(languages):
+        plt.annotate(lang, (umap_result_textblob[i, 0], umap_result_textblob[i, 1]))
+
+    plt.xlabel('UMAP Component 1')
+    plt.ylabel('UMAP Component 2')
+    plt.title('UMAP Visualization of TextBlob and BERT Data')
+    plt.legend()
+    plt.show()
+
+
+def pca_bert_specific_lang():
+    textblob_data = store_each_lang_sentiments()["textblob"]
+    bert_data = store_each_lang_sentiments()["bert"]
+
+    # Find the maximum length of arrays
+    max_length = max(max(len(arr) for arr in textblob_data.values()),
+                     max(len(arr) for arr in bert_data.values()))
+
+    # Pad arrays to the maximum length with zeros
+    for lang in textblob_data:
+        textblob_data[lang] += [0.0] * (max_length - len(textblob_data[lang]))
+
+    for cluster in bert_data:
+        bert_data[cluster] += [0.0] * (max_length - len(bert_data[cluster]))
+
+    # Convert the dictionary values to a list of arrays
+    bert_arrays = np.array([bert_data[cluster] for cluster in bert_data])
+
+    # Apply PCA for BERT data
+    pca_bert = PCA(n_components=2)
+    pca_result_bert = pca_bert.fit_transform(bert_arrays)
+
+    pc1_bert = pca_result_bert[:, 0]
+
+    # Get the language and cluster names
+    languages = list(textblob_data.keys())
+
+    # Calculate average PCA1_BERT for each language
+    avg_pca1_bert_lang = np.mean(pca_result_bert, axis=1)
+
+    # Plot the average BERT-specific language and PCA1_BERT values
+    plt.figure(figsize=(10, 8))
+    plt.scatter(pc1_bert, avg_pca1_bert_lang, color='red', label='Average BERT Data')
+
+    # Annotate each language point with the language name
+    for i, lang in enumerate(languages):
+        plt.annotate(lang, (pc1_bert[i], avg_pca1_bert_lang[i]))
+
+    plt.xlabel('PCA1_BERT')
+    plt.ylabel('Average PCA1_BERT for Each Language')
+    plt.title('Average PCA1_BERT for Each Language vs. PCA1_BERT')
+    plt.legend()
+    plt.show()
+
 
 def pca():
-    # Perform PCA for TextBlob data
-    pca_textblob = PCA(n_components=1)  # Set n_components to 1 or remove it to keep all components
-    textblob = np.array(histogram_textblob).reshape(-1, 1)  # Flatten and reshape for PCA
-    histogram_textblob_pca = pca_textblob.fit_transform(textblob)
+    textblob_data = store_each_lang_sentiments()["textblob"]
+    bert_data = store_each_lang_sentiments()["bert"]
 
-    # Perform PCA for BERT data
-    pca_bert = PCA(n_components=1)  # Set n_components to 1 or remove it to keep all components
-    bert = np.array(histogram_bert).reshape(-1, 1)  # Flatten and reshape for PCA
-    histogram_bert_pca = pca_bert.fit_transform(bert)
+    # Find the maximum length of arrays
+    max_length = max(max(len(arr) for arr in textblob_data.values()),
+                     max(len(arr) for arr in bert_data.values()))
 
-    # Assuming you have a list of languages associated with the data
-    languages_textblob = []  # List to store language labels for TextBlob
-    languages_bert = []  # List to store language labels for BERT
+    # Pad arrays to the maximum length with zeros
+    for lang in textblob_data:
+        textblob_data[lang] += [0.0] * (max_length - len(textblob_data[lang]))
 
-    for i, language in enumerate(result_textblob):
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_textblob[language][polarity_type]:
-                languages_textblob.append(language)
+    for cluster in bert_data:
+        bert_data[cluster] += [0.0] * (max_length - len(bert_data[cluster]))
 
-    for i, language in enumerate(result_bert):
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_bert[language][polarity_type]:
-                languages_bert.append(language)
+    # Convert the dictionary values to a list of arrays
+    textblob_arrays = np.array([textblob_data[lang] for lang in textblob_data])
+    bert_arrays = np.array([bert_data[cluster] for cluster in bert_data])
 
-    # Plot the PCA results with labels for TextBlob
-    plt.figure()
-    plt.scatter(histogram_textblob_pca[:, 0], np.zeros_like(histogram_textblob_pca), color='red', label="TextBlob PCA")
-    for i, lang in enumerate(languages_textblob):
-        plt.text(histogram_textblob_pca[i, 0], 0.0, lang, rotation=90, va='bottom', ha='center')
+    # Apply PCA for both textblob and BERT data
+    pca_textblob = PCA(n_components=2)
+    pca_result_textblob = pca_textblob.fit_transform(textblob_arrays)
 
-    # Plot the PCA results with labels for BERT
-    plt.scatter(histogram_bert_pca[:, 0], np.zeros_like(histogram_bert_pca), color='blue', label="BERT PCA")
-    for i, lang in enumerate(languages_bert):
-        plt.text(histogram_bert_pca[i, 0], 0.0, lang, rotation=90, va='bottom', ha='center')
+    pca_bert = PCA(n_components=2)
+    pca_result_bert = pca_bert.fit_transform(bert_arrays)
 
-    plt.xlabel('Principal Component')
+    # Get the principal components for both textblob and BERT data
+    pc1_textblob = pca_result_textblob[:, 0]
+    pc2_textblob = pca_result_textblob[:, 1]
+
+    pc1_bert = pca_result_bert[:, 0]
+    pc2_bert = pca_result_bert[:, 1]
+
+    # Get the language and cluster names
+    languages = list(textblob_data.keys())
+    clusters = list(bert_data.keys())
+
+    # Plot the languages based on the first two principal components
+    plt.figure(figsize=(10, 8))
+    plt.scatter(pc1_textblob, pc2_textblob, label='TextBlob Data')
+
+    # Annotate each language point with the language name
+    for i, lang in enumerate(languages):
+        plt.annotate(lang, (pc1_textblob[i], pc2_textblob[i]))
+
+    # Plot the clusters based on the first two principal components
+    plt.scatter(pc1_bert, pc2_bert, label='BERT Data')
+
+    # Annotate each cluster point with the cluster name
+    for i, cluster in enumerate(clusters):
+        plt.annotate(cluster, (pc1_bert[i], pc2_bert[i]))
+
+    plt.xlabel('Principal Component 1')
+    plt.ylabel('Principal Component 2')
+    plt.title('PCA Analysis of TextBlob and BERT Data')
     plt.legend()
     plt.show()
 
 
-def umap_clustering():
-    # Transform TextBlob data using UMAP
-    umap_textblob = umap.UMAP(n_components=2)
-    textblob = np.array(histogram_textblob).reshape(-1, 1)  # Flatten and reshape for UMAP
-    histogram_textblob_umap = umap_textblob.fit_transform(textblob)
+def store_each_lang_sentiments():
+    res_textblob = {}
+    res_bert = {}
 
-    # Transform BERT data using UMAP
-    umap_bert = umap.UMAP(n_components=2)
-    bert = np.array(histogram_bert).reshape(-1, 1)  # Flatten and reshape for UMAP
-    histogram_bert_umap = umap_bert.fit_transform(bert)
+    df = pd.read_excel(processed_data_file)
+    for index, row in df.iterrows():
+        language = row['language']
+        textblob = row["TextBlob"]
+        bert = row["BERT"]
 
-    # Assuming you have a list of languages associated with the data
-    languages_textblob = []  # List to store language labels for TextBlob
-    languages_bert = []  # List to store language labels for BERT
+        if language not in res_textblob:
+            res_textblob[language] = []
+            res_bert[language] = []
 
-    for i, language in enumerate(result_textblob):
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_textblob[language][polarity_type]:
-                languages_textblob.append(language)
+        res_textblob[language].append(textblob)
+        res_bert[language].append(bert)
 
-    for i, language in enumerate(result_bert):
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_bert[language][polarity_type]:
-                languages_bert.append(language)
+    # analiz_df = pd.DataFrame(res_textblob)
+    # analiz_df.to_excel(textblob_sentiments_for_each_lang_file, index=False)
 
-    # Plot the UMAP results with labels for TextBlob
-    plt.figure()
-    plt.scatter(histogram_textblob_umap[:, 0], histogram_textblob_umap[:, 1], color='red', label="TextBlob UMAP")
-    for i, lang in enumerate(languages_textblob):
-        plt.text(histogram_textblob_umap[i, 0], histogram_textblob_umap[i, 1], lang, va='bottom', ha='center',
-                 rotation=90)
+    # store_bert = pd.DataFrame(res_bert)
+    # store_bert.to_excel(bert_sentiments_for_each_lang, index=False)
 
-    # Plot the UMAP results with labels for BERT
-    plt.scatter(histogram_bert_umap[:, 0], histogram_bert_umap[:, 1], color='blue', label="BERT UMAP")
-    for i, lang in enumerate(languages_bert):
-        plt.text(histogram_bert_umap[i, 0], histogram_bert_umap[i, 1], lang, va='bottom', ha='center',
-                 rotation=90)
+    return {"textblob": res_textblob, "bert": res_bert}
 
-    plt.xlabel('UMAP Dimension 1')
-    plt.ylabel('UMAP Dimension 2')
-    plt.legend()
-    plt.show()
+
+def histogram_separately():
+    res_textblob = store_each_lang_sentiments()["textblob"]
+    res_bert = store_each_lang_sentiments()["bert"]
+    for language in res_textblob:
+        plt.figure()
+
+        # Plot histograms
+        plt.hist(res_textblob[language], bins=21, alpha=0.5, color='red', label="TextBlob")
+        plt.hist(res_bert[language], bins=21, alpha=0.5, color='blue', label="BERT")
+
+        plt.title(language)
+        plt.xlabel('Value')
+        plt.ylabel('Frequency')
+        plt.legend()
+
+        plt.show()
 
 
 def make_histogram_forAll():
-    for i, language in enumerate(result_textblob):
-        # Looping through different polarities and append values to langData
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_textblob[language][polarity_type]:
-                histogram_textblob.append(float(polarity_data[-5]))
+    histogram_textblob = []  # for polarity values for each language
+    histogram_bert = []  # for polarity values for each language
 
-    for i, language in enumerate(result_bert):
-        # Looping through different polarities and append values to langData
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_bert[language][polarity_type]:
-                histogram_bert.append(float(polarity_data[-3]))
+    df = pd.read_excel(processed_data_file)
+    for index, row in df.iterrows():
+        textblob = row['TextBlob']
+        bert = row["BERT"]
+        histogram_textblob.append(float(textblob))
+        histogram_bert.append(float(bert))
 
     plt.hist(histogram_textblob, bins=21, alpha=0.5, color='red', label="TextBlob")
     plt.hist(histogram_bert, bins=21, alpha=0.5, color='blue', label="BERT")
@@ -205,60 +378,63 @@ def make_histogram_forAll():
     plt.show()
 
 
-def histogram_separately():
-    for language in result_textblob:
-        textBlob = []  # polarities in TextBlob for each language
-        bert = []  # polarities in BERT for each language
+def show_bert_graph_and_save():
+    result_bert = {}
 
-        # Looping through different polarities and append values to nums
-        for polarity_type in ["negative", "weaklyNegative", "neutral", "weaklyPositive", "positive"]:
-            for polarity_data in result_textblob[language][polarity_type]:
-                textBlob.append(float(polarity_data[-5]))
+    df = pd.read_excel(processed_data_file)
+    for index, row in df.iterrows():
+        language = row['language']
+        bert_class = row['BERT Class']
 
-            for polarity_data in result_bert[language][polarity_type]:
-                bert.append(float(polarity_data[-3]))
+        if language not in result_bert:
+            result_bert[language] = {"negative": 0, "weaklyNegative": 0, "neutral": 0,
+                                     "weaklyPositive": 0, "positive": 0, "total": 0}
 
-        # Create a new figure for each language
-        plt.figure()
+        if bert_class == 1:
+            result_bert[language]["negative"] += 1
+        elif bert_class == 2:
+            result_bert[language]["weaklyNegative"] += 1
+        elif bert_class == 3:
+            result_bert[language]["neutral"] += 1
+        elif bert_class == 4:
+            result_bert[language]["weaklyPositive"] += 1
+        elif bert_class == 5:
+            result_bert[language]["positive"] += 1
 
-        # Plot histogram for TextBlob
-        plt.hist(textBlob, bins=21, alpha=0.5, color='red', label="TextBlob")
-        plt.hist(bert, bins=21, alpha=0.5, color='blue', label="BERT")
-
-        # Add labels and legend for TextBlob
-        plt.title(language)
-        plt.xlabel('Value')
-        plt.ylabel('Frequency')
-        plt.legend()
-
-        # Display the plot for TextBlob
-        plt.show()
-
-
-def show_graph_bert():
-    # set width of bar
-    barWidth = 0.15
+    languageTitles = []
     # set height of bar
     negative = []
     weaklyNegative = []
     neutral = []
     weaklyPositive = []
     positive = []
-    languageTitles = []
 
     for language in result_bert:
-        languageTitles.append(language)
-        totalNegative = len(result_bert[language]["negative"])
-        totalWeaklyNegative = len(result_bert[language]["weaklyNegative"])
-        totalNeutral = len(result_bert[language]["neutral"])
-        totalWeaklyPositive = len(result_bert[language]["weaklyPositive"])
-        totalPositive = len(result_bert[language]["positive"])
+        totalNegative = result_bert[language]["negative"]
+        totalWeaklyNegative = result_bert[language]["weaklyNegative"]
+        totalNeutral = result_bert[language]["neutral"]
+        totalWeaklyPositive = result_bert[language]["weaklyPositive"]
+        totalPositive = result_bert[language]["positive"]
         total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
+        result_bert[language]["total"] = total
+
+        languageTitles.append(language)
         negative.append(totalNegative / total)
         weaklyNegative.append(totalWeaklyNegative / total)
         neutral.append(totalNeutral / total)
         weaklyPositive.append(totalWeaklyPositive / total)
         positive.append(totalPositive / total)
+
+    # Create a DataFrame from the flattened result_bert dictionary
+    flat_data = []
+    for language, counts in result_bert.items():
+        flat_data.append({'Language': language, **counts})
+
+    analiz_df = pd.DataFrame(flat_data)
+    analiz_df.to_excel(bert_languages_file, index=False)
+
+    # set width of bar
+    barWidth = 0.15
 
     # Set position of bar on X axis
     br1 = np.arange(len(negative))
@@ -290,30 +466,63 @@ def show_graph_bert():
     plt.show()
 
 
-def show_graph_textBlob():
-    # set width of bar
-    barWidth = 0.15
+def show_textblob_graph_and_save():
+    result_textblob = {}
+
+    df = pd.read_excel(processed_data_file)
+    for index, row in df.iterrows():
+        language = row['language']
+        textblob_class = row['TextBlob Class']
+
+        if language not in result_textblob:
+            result_textblob[language] = {"negative": 0, "weaklyNegative": 0, "neutral": 0,
+                                         "weaklyPositive": 0, "positive": 0, "total": 0}
+
+        if textblob_class == 1:
+            result_textblob[language]["negative"] += 1
+        elif textblob_class == 2:
+            result_textblob[language]["weaklyNegative"] += 1
+        elif textblob_class == 3:
+            result_textblob[language]["neutral"] += 1
+        elif textblob_class == 4:
+            result_textblob[language]["weaklyPositive"] += 1
+        elif textblob_class == 5:
+            result_textblob[language]["positive"] += 1
+
+    languageTitles = []
     # set height of bar
     negative = []
     weaklyNegative = []
     neutral = []
     weaklyPositive = []
     positive = []
-    languageTitles = []
 
     for language in result_textblob:
-        languageTitles.append(language)
-        totalNegative = len(result_textblob[language]["negative"])
-        totalWeaklyNegative = len(result_textblob[language]["weaklyNegative"])
-        totalNeutral = len(result_textblob[language]["neutral"])
-        totalWeaklyPositive = len(result_textblob[language]["weaklyPositive"])
-        totalPositive = len(result_textblob[language]["positive"])
+        totalNegative = result_textblob[language]["negative"]
+        totalWeaklyNegative = result_textblob[language]["weaklyNegative"]
+        totalNeutral = result_textblob[language]["neutral"]
+        totalWeaklyPositive = result_textblob[language]["weaklyPositive"]
+        totalPositive = result_textblob[language]["positive"]
         total = totalNegative + totalWeaklyNegative + totalNeutral + totalWeaklyPositive + totalPositive
+        result_textblob[language]["total"] = total
+
+        languageTitles.append(language)
         negative.append(totalNegative / total)
         weaklyNegative.append(totalWeaklyNegative / total)
         neutral.append(totalNeutral / total)
         weaklyPositive.append(totalWeaklyPositive / total)
         positive.append(totalPositive / total)
+
+    # Create a DataFrame from the flattened result_textblob dictionary
+    flat_data = []
+    for language, counts in result_textblob.items():
+        flat_data.append({'Language': language, **counts})
+
+    analiz_df = pd.DataFrame(flat_data)
+    analiz_df.to_excel(textblob_languages_file, index=False)
+
+    # set width of bar
+    barWidth = 0.15
 
     # Set position of bar on X axis
     br1 = np.arange(len(negative))
@@ -345,42 +554,9 @@ def show_graph_textBlob():
     plt.show()
 
 
-def read_file():
-    df = pd.read_excel(filename)
-    # Open the xlsx file for reading
-    for index, row in df.iterrows():
-        textBlob = row['TextBlob Class']
-        bert = row['BERT Class']
-        language = row['language']
-
-        if language not in result_textblob:
-            result_textblob[language] = {"negative": [], "weaklyNegative": [], "neutral": [], "weaklyPositive": [],
-                                         "positive": []}
-        if language not in result_bert:
-            result_bert[language] = {"negative": [], "weaklyNegative": [], "neutral": [], "weaklyPositive": [],
-                                     "positive": []}
-
-        if textBlob == 1:
-            result_textblob[language]["negative"].append(row)
-        elif textBlob == 2:
-            result_textblob[language]["weaklyNegative"].append(row)
-        elif textBlob == 3:
-            result_textblob[language]["neutral"].append(row)
-        elif textBlob == 4:
-            result_textblob[language]["weaklyPositive"].append(row)
-        elif textBlob == 5:
-            result_textblob[language]["positive"].append(row)
-
-        if bert == 1:
-            result_bert[language]["negative"].append(row)
-        elif bert == 2:
-            result_bert[language]["weaklyNegative"].append(row)
-        elif bert == 3:
-            result_bert[language]["neutral"].append(row)
-        elif bert == 4:
-            result_bert[language]["weaklyPositive"].append(row)
-        elif bert == 5:
-            result_bert[language]["positive"].append(row)
+def show_graphs():
+    show_textblob_graph_and_save()
+    show_bert_graph_and_save()
 
 
 def detect_classof_textBlob(polarity):
@@ -396,6 +572,83 @@ def detect_classof_textBlob(polarity):
         return 5
 
 
+def find_bert_sentiment_analyzes(sentence):
+    max_token_limit = 512
+
+    # Split the sentence into chunks of 512 tokens or less
+    chunks = [sentence[i:i + max_token_limit] for i in range(0, len(sentence), max_token_limit)]
+
+    # Initialize lists to store sentiment scores and classes for each chunk
+    chunk_bert_scores = []
+    chunk_bert_classes = []
+
+    # Process each chunk separately using the BERT model
+    for chunk in chunks:
+        result = bert_analysis(chunk)
+        chunk_bert_scores.extend([res['score'] for res in result])
+        chunk_bert_classes.extend([int(res['label'].split(' ')[0]) for res in result])
+
+    # print(chunk_bert_scores)
+    # print(chunk_bert_classes)
+    # Calculate the average sentiment scores and classes for each chunk
+    average_chunk_scores = [
+        sum(chunk_bert_scores[i:i + max_token_limit]) / len(chunk_bert_scores[i:i + max_token_limit])
+        for i in range(0, len(chunk_bert_scores), max_token_limit)]
+
+    # Calculate average chunk classes
+    average_chunk_classes = [
+        sum(chunk_bert_classes[i:i + max_token_limit]) / len(chunk_bert_classes[i:i + max_token_limit])
+        for i in range(0, len(chunk_bert_classes), max_token_limit)]
+
+    # print("Average chunk scores:", average_chunk_scores[0])
+    # print("Average chunk classes:", int(average_chunk_classes[0]))
+    return ({"score": average_chunk_scores[0], "class": int(average_chunk_classes[0])})
+
+
+def find_textblob_class(polarity):
+    if -1 <= polarity < -0.6:
+        return 1
+    elif -0.6 <= polarity < -0.2:
+        return 2
+    elif -0.2 < polarity < 0.2:
+        return 3
+    elif 0.2 < polarity < 0.6:
+        return 4
+    else:
+        return 5
+
+
+def find_textblob_continuous(sentence):
+    blob = TextBlob(sentence)
+    polarity = blob.sentiment.polarity
+    return polarity
+
+
+def make_sentiment_analyzes_and_save():
+    df = pd.read_excel(pulled_data_file)
+    # Open the xlsx file for reading
+    for index, row in df.iterrows():
+        postId = row["postId"]
+        commentId = row["commentId"]
+        sentence = row['sentence']
+        language = row['language']
+        textblob_continuous = find_textblob_continuous(sentence)
+        textblob_class = find_textblob_class(textblob_continuous)
+        bert_res = find_bert_sentiment_analyzes(sentence)
+        bert_continuous = bert_res["score"]
+        bert_class = bert_res["class"]
+        # find_bert_sentiment_analyzes(sentence)[0]['score']
+        # bert_class = int(find_bert_sentiment_analyzes(sentence)[0]['label'].split(' ')[0])
+
+        processed_data.append({'postId': postId, 'commentId': commentId, 'sentence': sentence, 'language': language,
+                               'TextBlob': textblob_continuous, 'TextBlob Class': textblob_class,
+                               'BERT': bert_continuous,
+                               'BERT Class': bert_class})
+
+    analiz_df = pd.DataFrame(processed_data)
+    analiz_df.to_excel(processed_data_file, index=False)
+
+
 def detect_language(sentence):
     langs = []
     words = word_tokenize(sentence)
@@ -407,63 +660,33 @@ def detect_language(sentence):
     return langs
 
 
-def analyze_sentiment(sentence):
-    # Creating a TextBlob object
-    blob = TextBlob(sentence)
-
-    # Getting the polarity score, which ranges from -1 (negative) to 1 (positive)
-    polarity = blob.sentiment.polarity
-
-    return polarity
-
-
-def split_and_save(data):
+def break_into_sentences(data):
     sentences = sent_tokenize(data['text'])
     for sentence in sentences:
-        textblob_polarity = analyze_sentiment(sentence)
-        textblob_class = detect_classof_textBlob(textblob_polarity)
-        bert_polarity = online_sentiment_analyze(sentence)[0]['score']
-        bert_class = int(online_sentiment_analyze(sentence)[0]['label'].split(' ')[0])
         languages = detect_language(sentence)
         if len(languages) > 0:
             if len(languages) > 1:
                 for language in languages:
                     if "comment" in data:
-                        excel_data.append(
+                        pulled_data.append(
                             {'postId': data['post'], 'commentId': data['comment'], 'sentence': sentence,
-                             'TextBlob': textblob_polarity, 'TextBlob Class': textblob_class, 'BERT': bert_polarity,
-                             'BERT Class': bert_class, 'language': language})
+                             'language': language})
                     else:
-                        excel_data.append(
-                            {'postId': data['post'], 'commentId': "", 'sentence': sentence,
-                             'TextBlob': textblob_polarity, 'TextBlob Class': textblob_class, 'BERT': bert_polarity,
-                             'BERT Class': bert_class, 'language': language})
+                        pulled_data.append(
+                            {'postId': data['post'], 'commentId': "", 'sentence': sentence, 'language': language})
             else:
                 if "comment" in data:
-                    excel_data.append(
+                    pulled_data.append(
                         {'postId': data['post'], 'commentId': data['comment'], 'sentence': sentence,
-                         'TextBlob': textblob_polarity, 'TextBlob Class': textblob_class, 'BERT': bert_polarity,
-                         'BERT Class': bert_class, 'language': languages[0]})
+                         'language': languages[0]})
                 else:
-                    excel_data.append(
-                        {'postId': data['post'], 'commentId': "", 'sentence': sentence,
-                         'TextBlob': textblob_polarity, 'TextBlob Class': textblob_class, 'BERT': bert_polarity,
-                         'BERT Class': bert_class, 'language': languages[0]})
-    analiz_df = pd.DataFrame(excel_data)
-    analiz_df.to_excel(filename, index=False)
+                    pulled_data.append(
+                        {'postId': data['post'], 'commentId': "", 'sentence': sentence, 'language': languages[0]})
+    analiz_df = pd.DataFrame(pulled_data)
+    analiz_df.to_excel(pulled_data_file, index=False)
 
 
-def process_data():
-    for post in posts:
-        if post.selftext != '':
-            split_and_save({"post": post, "text": post.selftext.replace('\n', ' ')})
-        if len(post.comments.list()) != 0:
-            for comment in post.comments.list():
-                if isinstance(comment, praw.models.Comment):
-                    split_and_save({"post": post, "comment": comment, "text": comment.body.replace('\n', ' ')})
-
-
-def pull_data_from_api():
+def pull_data_from_api_and_save():
     # Define user agent
     user_agent = "praw_scraper_1.0"
 
@@ -481,17 +704,22 @@ def pull_data_from_api():
 
     # looping over posts and scraping it
     for post in subreddit.new(limit=None):
-        posts.append(post)
-        # Introduce a delay between requests (e.g., 5 seconds)
+        if post.selftext != '':
+            break_into_sentences({"post": post, "text": post.selftext.replace('\n', ' ')})
+        if len(post.comments.list()) != 0:
+            for comment in post.comments.list():
+                if isinstance(comment, praw.models.Comment):
+                    break_into_sentences({"post": post, "comment": comment, "text": comment.body.replace('\n', ' ')})
+        # Introduce a delay between requests
         time.sleep(10)
 
 
-pull_data_from_api()
-process_data()
-# read_file()
-# show_graph_textBlob()
-# show_graph_bert()
-# histogram_separately()
+# pull_data_from_api_and_save()
+# make_sentiment_analyzes_and_save()
+# show_graphs()
 # make_histogram_forAll()
-# umap_clustering()
+# histogram_separately()
 # pca()
+# pca_bert_specific_lang()
+color_palet()
+# show_umap()
