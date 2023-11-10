@@ -9,7 +9,6 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from transformers import pipeline
 import umap
-import seaborn as sns
 
 # languages
 languages = [
@@ -84,7 +83,6 @@ bert_sentiments_for_each_lang_file = "bertSentimentsForEachLang.xlsx"
 posts = []
 pulled_data = []
 processed_data = []
-
 bert_analysis = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 
 
@@ -139,66 +137,6 @@ def show_umap():
     # Annotate each point with the cluster name
     for i, cluster in enumerate(clusters):
         plt.annotate(cluster, (umap1_bert[i], umap2_bert[i]))
-
-    plt.xlabel('UMAP Component 1')
-    plt.ylabel('UMAP Component 2')
-    plt.title('UMAP Visualization of TextBlob and BERT Data')
-    plt.legend()
-    plt.show()
-
-
-def color_palet():
-    textblob_data = store_each_lang_sentiments()["textblob"]
-    bert_data = store_each_lang_sentiments()["bert"]
-
-    # Find the maximum length of arrays
-    max_length = max(max(len(arr) for arr in textblob_data.values()),
-                     max(len(arr) for arr in bert_data.values()))
-
-    # Pad arrays to the maximum length with zeros
-    for lang in textblob_data:
-        textblob_data[lang] += [0.0] * (max_length - len(textblob_data[lang]))
-
-    for cluster in bert_data:
-        bert_data[cluster] += [0.0] * (max_length - len(bert_data[cluster]))
-
-    # Convert the dictionary values to a list of arrays
-    textblob_arrays = np.array([textblob_data[lang] for lang in textblob_data])
-    bert_arrays = np.array([bert_data[cluster] for cluster in bert_data])
-
-    # Apply UMAP for both textblob and BERT data with a fixed random_state
-    umap_textblob = umap.UMAP(n_components=2, random_state=42)
-    umap_result_textblob = umap_textblob.fit_transform(textblob_arrays)
-
-    umap_bert = umap.UMAP(n_components=2, random_state=42)
-    umap_result_bert = umap_bert.fit_transform(bert_arrays)
-
-    # Get the language and cluster names
-    languages = list(textblob_data.keys())
-    clusters = list(bert_data.keys())
-
-    # Define a color palette for clusters
-    cluster_palette = sns.color_palette("husl", len(clusters))
-
-    # Plot the UMAP embeddings for textblob data
-    plt.figure(figsize=(10, 8))
-
-    for i, cluster in enumerate(clusters):
-        cluster_points_bert = bert_data[cluster]
-        num_points = len(cluster_points_bert)
-        brightness = np.linspace(0.2, 1, num_points)
-
-        # Assign a color to each point within the cluster
-        cluster_colors = [sns.set_hls_values(cluster_palette[i], l=b) for b in brightness]
-
-        # Plot the points for each cluster with varying brightness
-        plt.scatter(umap_result_bert[:num_points, 0], umap_result_bert[:num_points, 1],
-                    color=cluster_colors,
-                    label=f'Cluster {cluster}')
-
-    # Annotate each point with the language name
-    for i, lang in enumerate(languages):
-        plt.annotate(lang, (umap_result_textblob[i, 0], umap_result_textblob[i, 1]))
 
     plt.xlabel('UMAP Component 1')
     plt.ylabel('UMAP Component 2')
@@ -713,13 +651,11 @@ def pull_data_from_api_and_save():
         # Introduce a delay between requests
         time.sleep(10)
 
-
 # pull_data_from_api_and_save()
 # make_sentiment_analyzes_and_save()
 # show_graphs()
 # make_histogram_forAll()
 # histogram_separately()
 # pca()
-# pca_bert_specific_lang()
-color_palet()
-# show_umap()
+# #pca_bert_specific_lang()
+show_umap()
